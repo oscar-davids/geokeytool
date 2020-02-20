@@ -28,6 +28,7 @@
 int _dowildcard = -1;
 #endif
 
+
 static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED FILE *fp)
 {
   #if defined (_WIN)
@@ -1063,18 +1064,40 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
 }
 
 
-u32 paramround = 1024;
-char chinfile[256] = {0,};
-char choutfile[256] = {0,};
+
+extern u32 paramround;
+extern char chinfile[256];
+extern char choutfile[256];
+
 
 int main (int argc, char **argv)
 {
   // this increases the size on windows dos boxes
+  
+  const char *install_folder = NULL;
+  const char *shared_folder   = NULL;
+  
+  hashcat_ctx_t *hashcat_ctx = NULL; 
+  user_options_t *user_options = NULL;
+  
+  time_t proc_start;
+  time_t proc_stop;
+  
+  int rc_final = -1;
+
+  if (argc == 4)
+  {
+  	int nround = atoi(argv[3]);
+	
+    if(maintest(argv[1],argv[2],nround) > -5)
+	 return 0;
+  }
+  
 
   if (argc != 5 || strcmp(argv[1], "-l") != 0)
   {
   	printf("invalid argument\n");
-	printf("ex. clibhash -l passsalt.txt out.txt round(2^n, 1024,2048)\n");
+	printf("ex. ./clibhash -l intest.txt out.txt 1024\n");
 	return  0;
   }
   
@@ -1082,14 +1105,16 @@ int main (int argc, char **argv)
   strcpy(choutfile,argv[3]);
   
   paramround = atoi(argv[4]);
+
+ 
   
   setup_console ();
 
-  const time_t proc_start = time (NULL);
+  proc_start = time (NULL);
 
   // hashcat main context
 
-  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
+  hashcat_ctx = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
 
   if (hashcat_init (hashcat_ctx, event) == -1)
   {
@@ -1098,9 +1123,6 @@ int main (int argc, char **argv)
     return -1;
   }
   // install and shared folder need to be set to recognize "make install" use
-
-  const char *install_folder = NULL;
-  const char *shared_folder  = NULL;
 
   #if defined (INSTALL_FOLDER)
   install_folder = INSTALL_FOLDER;
@@ -1137,7 +1159,7 @@ int main (int argc, char **argv)
 
   // some early exits
 
-  user_options_t *user_options = hashcat_ctx->user_options;
+  user_options = hashcat_ctx->user_options;
 
   #ifdef WITH_BRAIN
   if (user_options->brain_server == true)
@@ -1163,7 +1185,7 @@ int main (int argc, char **argv)
 
   welcome_screen (hashcat_ctx, VERSION_TAG);
 
-  int rc_final = -1;
+  
 
   if (hashcat_session_init (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME) == 0)
   {
@@ -1183,6 +1205,7 @@ int main (int argc, char **argv)
     {
       // if this is just backend_info, no need to execute some real cracking session
 
+
       backend_info (hashcat_ctx);
 
       rc_final = 0;
@@ -1195,6 +1218,7 @@ int main (int argc, char **argv)
 
       user_options_info (hashcat_ctx);
 
+
       rc_final = hashcat_session_execute (hashcat_ctx);
     }
   }
@@ -1205,9 +1229,10 @@ int main (int argc, char **argv)
 
   // finished with hashcat, clean up
 
-  const time_t proc_stop = time (NULL);
+  proc_stop = time (NULL);
 
   goodbye_screen (hashcat_ctx, proc_start, proc_stop);
+
 
   hashcat_destroy (hashcat_ctx);
 
@@ -1215,3 +1240,8 @@ int main (int argc, char **argv)
 
   return rc_final;
 }
+
+//Add for python and geokeys
+
+
+

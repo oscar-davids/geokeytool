@@ -1745,6 +1745,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
+
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
   if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
@@ -1760,8 +1761,8 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_dev == true) continue;
 
-    if (device_info->skipped_warning_dev == true) continue;
-
+    //if (device_info->skipped_warning_dev == true) continue;
+	/*
     event_log_info (hashcat_ctx,
       "Speed.#%d.........: %9sH/s (%0.2fms) @ Accel:%d Loops:%d Thr:%d Vec:%d", device_id + 1,
       device_info->speed_sec_dev,
@@ -1770,6 +1771,17 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
       device_info->kernel_loops_dev,
       device_info->kernel_threads_dev,
       device_info->vector_width_dev);
+	*/
+	
+	printf (
+      "Speed.#%d.........: %9sH/s (%0.2fms) @ Accel:%d Loops:%d Thr:%d Vec:%d\n", device_id + 1,
+      device_info->speed_sec_dev,
+      device_info->exec_msec_dev,
+      device_info->kernel_accel_dev,
+      device_info->kernel_loops_dev,
+      device_info->kernel_threads_dev,
+      device_info->vector_width_dev);
+	
   }
 
   if (hashcat_status->device_info_active > 1)
