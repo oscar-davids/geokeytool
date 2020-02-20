@@ -2523,10 +2523,14 @@ typedef struct thread_param
   u32 tid;
 
   hashcat_ctx_t *hashcat_ctx;
-
+ 
   char	pass[SALT_MAX];
   char	salt[SALT_MAX];
   char	hash[SALT_MAX];
+  const char* ppaasword;
+  const char* psalt;
+  char* pouthash;
+  int   nround;
 
 } thread_param_t;
 
