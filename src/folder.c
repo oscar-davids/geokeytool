@@ -309,7 +309,10 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   char *resolved_install_folder = realpath (install_folder, NULL);
   char *resolved_exec_path      = realpath (exec_path, NULL);
 
+
+
   if (resolved_install_folder == NULL) resolved_install_folder = hcstrdup (SLASH);
+
 
   /*
   This causes invalid error out if install_folder (/usr/local/bin) does not exist
@@ -380,15 +383,25 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   hcfree (resolved_install_folder);
   hcfree (resolved_exec_path);
 
+  //install_dir = "./";
+  strcpy(install_dir,"./");
+  
+  	
+  profile_dir = install_dir;
+  session_dir = install_dir;
+  shared_dir  = install_dir;
+
   #else
 
   char *install_dir = hcmalloc (HCBUFSIZ_TINY);
 
-  get_install_dir (install_dir, exec_path);
+  get_install_dir (install_dir, exec_path);  
 
-  char *profile_dir = install_dir;
-  char *session_dir = install_dir;
-  char *shared_dir  = install_dir;
+  install_dir = "./"
+
+  profile_dir = install_dir;
+  session_dir = install_dir;
+  shared_dir  = install_dir;
 
   #endif
 

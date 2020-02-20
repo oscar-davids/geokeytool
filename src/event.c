@@ -273,6 +273,7 @@ size_t event_log_warning (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
 size_t event_log_error (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 {
+  
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
   if (fmt == NULL)
@@ -288,6 +289,8 @@ size_t event_log_error (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
     va_start (ap, fmt);
 
     event_ctx->msg_len = event_log (fmt, ap, event_ctx->msg_buf, HCBUFSIZ_SMALL - 1);
+
+	printf("%s\n",event_ctx->msg_buf);
 
     va_end (ap);
   }
