@@ -348,7 +348,7 @@ endif
 ## Targets: Native Compilation
 ##
 
-default: $(HASHCAT_FRONTEND) modules
+default: $(HASHCAT_LIBRARY)  modules
 
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
