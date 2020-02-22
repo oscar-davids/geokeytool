@@ -11,6 +11,7 @@ class clbflib:
     def __init__(self): 
         #print('clbflib created')
         if clbflib.binit == 1:
+            print("\nLoading GPU opencl kernel.....")
             lib.init_bcryptengine()
             clbflib.binit = 0
             clbflib.nengincount = lib.get_enginecount()
@@ -71,18 +72,4 @@ class clbflib:
         
         resstr = outstr[0:60]
         return resstr
-
-
-
-#myArray = "\0" * 100
-
-#lib.init_bcryptengine()
-#lib.bcrypt_hashpass("aaa","aaa",1024,myArray,0)
-#print("private key            : " + myArray)
-#lib.exit_bcryptengine()
-
-
-#blib = clbflib()
-#blib.process("bbb","bbb",1024,myArray)
-#print("private key            : " + myArray)
 
