@@ -30,7 +30,7 @@ pycparser==2.18
 pycrypto==2.6.1
 Pygments==2.2.0
 pygobject==3.26.1
-pyxdg==0.25
+pyxdg==0.26
 requests==2.23.0
 scandir==1.6
 secp256k1==0.13.2
