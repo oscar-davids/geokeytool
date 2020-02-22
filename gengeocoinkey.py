@@ -213,15 +213,15 @@ def generatecoinkey(ablib, password, gps, nround, resultlist):
     #print("bitcoin address base58 : " + bitcoinaddressbase58)            
     #print("wif: " + walletinputformat)
     
-    jsonstr = "{" + '''"password":''' + '''"''' + password + '''"''' + " \n"
-    jsonstr += '''"gps":''' + '''"''' + gps + '''"''' + " \n"
-    jsonstr += '''"bcrypt output1":''' + '''"''' + hashed_pw + '''"''' + " \n"
-    jsonstr += '''"bcrypt output2":''' + '''"''' + hashed_gps + '''"''' + " \n"
-    jsonstr += '''"private key":''' + '''"''' + privateKey + '''"''' + " \n"
-    jsonstr += '''"public key":'''+ '''"'''  + publicKey + '''"''' + " \n"
-    jsonstr += '''"bitcoin address":'''+ '''"'''  + bitcoinaddress + '''"''' + " \n" 
-    jsonstr += '''"bitcoin address base58":'''+ '''"'''  + bitcoinaddressbase58 + '''"''' + " \n"
-    jsonstr += '''"wif":''' +  '''"''' + walletinputformat + '''"''' + "}"+ "\n"
+    jsonstr = "{" + "\n" + '''"password":''' + '''"''' + password + '''",''' + " \n"
+    jsonstr += '''"gps":''' + '''"''' + gps + '''",''' + " \n"
+    jsonstr += '''"bcrypt output1":''' + '''"''' + hashed_pw + '''",''' + " \n"
+    jsonstr += '''"bcrypt output2":''' + '''"''' + hashed_gps + '''",''' + " \n"
+    jsonstr += '''"private key":''' + '''"''' + privateKey + '''",''' + " \n"
+    jsonstr += '''"public key":'''+ '''"'''  + publicKey + '''",''' + " \n"
+    jsonstr += '''"bitcoin address":'''+ '''"'''  + bitcoinaddress + '''",''' + " \n" 
+    jsonstr += '''"bitcoin address base58":'''+ '''"'''  + bitcoinaddressbase58 + '''",''' + " \n"
+    jsonstr += '''"wif":''' +  '''"''' + walletinputformat + '''"''' + "\n" + "}"+ "\n"
     
     resultlist.append(jsonstr)
     #resultlist.put(jsonstr)
@@ -248,6 +248,7 @@ def main():
     try:
         finfile = open(sinfile, 'r')
         foutfile = open(soutfile, 'w')
+        #foutfile.write("[\n") 
 # for simplicity in testing the rounds are set to 32 rounds = 2^5 while the recommended production rounds are 2^16, 65536 rounds.
 # this results in about 1 key every 500 ms on a state of the art nvidia but takes about 4 minutes on a single threaded cpu process.
 #hashed_pw = bcrypt.kdf(password=password, salt=gps, desired_key_bytes=32, rounds=32)
@@ -320,6 +321,7 @@ def main():
             #----------------------------------------------------------
         
         finfile.close()
+        #foutfile.write("\n]\n") 
         foutfile.close()        
         
     except IOError:
