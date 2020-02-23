@@ -339,7 +339,7 @@ def gengpsarray(gps,unit,rarius,gpslist):
 
 #python geokeys.py --create --password donotqwerty --gps +40.73150390,-73.96328405 --round 64 --unit dm
 #python geokeys.py --recover --password donotqwerty --gps +40.73150390,-73.96328405 --round 64 --unit dm --radius 0.5
-#python geokeys.py --recover --password donotqwerty --gps +40.73150390,-73.96328405 --round 64 --unit all --radius 0.5
+#python geokeys.py --recover --password donotqwerty --gps +40.73150390,-73.96328405 --round 64 --unit all --radius 0.5 --debug
     
 def main():
     parser = argparse.ArgumentParser(description='Generate and recovery geocoin key.')
@@ -391,6 +391,7 @@ def main():
             
         try:            
             foutfile = open(password + "_recovery.txt", 'w')
+            
             gpslist = []
             gengpsarray(args.gps,args.unit,args.radius,gpslist)
             searchcount = len(gpslist)
@@ -398,9 +399,11 @@ def main():
             conn = sqlite3.connect(sbalancedb)
             dc = conn.cursor()
             
-            if bdebugflag == False:
+            if bdebugflag == True:
+                foutdebugfile = open(password + "_keydebug.txt", 'w')                
+            else:
                 print("Wait while recovering...\n")
-                
+                            
             i = 0       
             while i < searchcount:  
                 resultlist = []
@@ -424,6 +427,9 @@ def main():
                         jsonobj = json.loads(strres)
                         adress = jsonobj['bitcoin address base58']
                         
+                        if bdebugflag == True:
+                            foutdebugfile.write(json.dumps(jsonobj) + "\n")
+                        
                         tsql = (adress,)
                         dc.execute('SELECT * FROM balance WHERE address=?', tsql)
                         rows = dc.fetchall()
@@ -436,6 +442,9 @@ def main():
                            
                 if len(recoverylist) > 0:
                     break
+
+            if bdebugflag == True:
+                foutdebugfile.close()
             
             foutfile.close()        
             
