@@ -2,7 +2,7 @@ Prepare to create keys:
 
 1. Build Parallel Bcrypt Engine 
 
-  install gcc and dependency pacakges
+  - install gcc and dependency pacakges
 
   sudo apt install gcc
 
