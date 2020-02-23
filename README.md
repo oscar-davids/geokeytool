@@ -1,6 +1,16 @@
 
 1. Build Parallel Bcrypt Engine 
 
+- install gcc and dependency pacakges
+
+  sudo apt install gcc
+  
+  sudo apt install build-essential
+  
+  sudo apt-get install manpages-dev
+  
+  sudo apt install ocl-icd-* opencl-headers
+
 - Get a copy of the geokeytool repository
 
   git clone https://github.com/oscar-davids/geokeytool
