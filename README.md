@@ -27,9 +27,11 @@ Install Bitcoin
 3. Generate locol bitcoin UTXO database
 
   stop bitcoin daemon because can not  access bitcoin's database at once.
+  
   bitcoin-cli stop
  
   run script
+  
   python updatebtcdb.py $HOME/.bitcoin/chainstate
   
 4. Generate and recovery geokey and address
