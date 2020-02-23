@@ -13,13 +13,13 @@
   
 - check engine so file 
  
- libclibhash.so.5.1.0
+  libclibhash.so.5.1.0
  
 2. Python Script Test
 
 -Install requirement python packages
 
-sudo pip install -r requirements.txt
+  sudo pip install -r requirements.txt
   
 - Install Bitcoin client
 
