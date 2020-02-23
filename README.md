@@ -24,7 +24,7 @@ Install Bitcoin
   
   start bitcoin daemon mode
 
-Generate locol bitcoin UTXO database
+3. Generate locol bitcoin UTXO database
 
   stop bitcoin daemon because can not  access bitcoin's database at once.
   bitcoin-cli stop
@@ -32,13 +32,13 @@ Generate locol bitcoin UTXO database
   run script
   python updatebtcdb.py $HOME/.bitcoin/chainstate
   
-Generate and recovery geokey and address
+4. Generate and recovery geokey and address
 
   python geokeys.py --create --password donotqwerty --gps +40.73150390,-73.96328405 --round 64 --unit dm
   
   python geokeys.py --recover --password donotqwerty --gps +40.73150390,-73.96328405 --round 64 --unit dm --radius 0.5
   
-Other test script
+5. Other test script
 
   python gengeoinfo.py --password aaaaa --gps +40.73150390,-73.96328405 --radius 0.5 --unit dm --out geoinfo.txt
 
