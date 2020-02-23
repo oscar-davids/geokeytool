@@ -147,7 +147,7 @@ def bchr(s):
     return bytes([s])
 
 
-def generatecoinkey(brecovery, ablib, password, gps, nround, resultlist):
+def generatecoinkey(brecovery, ablib, password, gps, nround, bdebugflag,resultlist):
 
     if len(password) == 0:
         return
@@ -238,7 +238,7 @@ def generatecoinkey(brecovery, ablib, password, gps, nround, resultlist):
     # print("public key ripemd160 and version sha256 round two: " + binascii.hexlify(hashed_ripemd160_with_version_roundtwo_sha256).decode("utf-8"))
     # print("public key checksum: " + binascii.hexlify(checksum).decode("utf-8"))           
     ##print("bitcoin address: " + bitcoinaddress)
-    if brecovery == True:
+    if brecovery == True and bdebugflag == True:
         print("bitcoin address base58 : " + bitcoinaddressbase58)            
     #print("wif: " + walletinputformat)
     
@@ -353,7 +353,8 @@ def main():
     parser.add_argument('--round', type=int, default=1024, help='bcrypt lop round to use')
     parser.add_argument('--unit', type=str, default='dm',help='search unit to use(m dm cm mm all)')
     parser.add_argument('--radius', type=float,default=0.5, help='search radius(m) to use')
-      
+    
+    parser.add_argument('--debug', dest='debugflag', action='store_const',const=True ,default=False, help='Debug flag')    
     
     args = parser.parse_args()
 
@@ -363,7 +364,11 @@ def main():
     else:
         print("Recovery Geokey!\n")
         modecreate = False
-
+    
+    bdebugflag = False
+    if args.debugflag:
+        bdebugflag = True
+        
     nround  = args.round
     password = args.password    
     radius = args.radius  
@@ -373,7 +378,7 @@ def main():
     if modecreate == True:
         resultlist = []
         foutfile = open(password + "_key.txt", 'w')
-        generatecoinkey(False, liblist[0],args.password,args.gps,nround,resultlist)
+        generatecoinkey(False, liblist[0],args.password,args.gps,nround,bdebugflag,resultlist)
         for strres in resultlist: 
                 if len(strres) > 0:
                     print(strres)
@@ -392,7 +397,10 @@ def main():
             
             conn = sqlite3.connect(sbalancedb)
             dc = conn.cursor()
-    
+            
+            if bdebugflag == False:
+                print("Wait while recovering...\n")
+                
             i = 0       
             while i < searchcount:  
                 resultlist = []
@@ -402,7 +410,7 @@ def main():
                     if i < searchcount:
                         sgps = gpslist[i]
                         #proc = Process(target=generatecoinkey, args=(liblist[index],password,gps,nround,resultlist)) 
-                        proc = Thread(target=generatecoinkey, args=(True, liblist[index],password,sgps,nround,resultlist)) 
+                        proc = Thread(target=generatecoinkey, args=(True, liblist[index],password,sgps,nround,bdebugflag,resultlist)) 
                         
                         procs.append(proc) 
                         proc.start()
