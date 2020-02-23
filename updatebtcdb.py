@@ -218,11 +218,10 @@ if __name__ == '__main__':
     #else:
     #    fd, dbfile = tempfile.mkstemp()
     #    os.close(fd)    
-    print('making bitcoin balance database 1\n' + dbfile)
+    print('making bitcoin balance database\n' + dbfile)
     
     with sqlite3.connect(dbfile) as conn:
         curr = conn.cursor()
-        print('making bitcoin balance database\n')
         curr.execute(
             """
             DROP TABLE IF EXISTS balance
