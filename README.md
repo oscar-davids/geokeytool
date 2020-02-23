@@ -1,5 +1,5 @@
 
-1. Parallel Bcrypt Engine Build
+1. Build Parallel Bcrypt Engine 
 
 - Get a copy of the geokeytool repository
 
