@@ -254,38 +254,8 @@ def generatecoinkey(brecovery, ablib, password, gps, nround, resultlist):
     resultlist.append(jsonstr)
     
     return
-            
-def gengpsarray(gps,unit,rarius,gpslist):
-
-    centlatlong = gps.split(",")
-    if len(centlatlong) != 2:
-        print("invalid gps argument")
-        return
-
-    cenlat = float(centlatlong[0])
-    cenlong = float(centlatlong[1])
-
-    searchredius = rarius
-    scanunit =  unit
-
-    #earth mean radius mm
-    #637813700
-    earthradius = 6371008800
-    #calculate real degree unit for argument unit
-    earthtotallen = math.pi * 2.0 * earthradius
-    #calc square step
-    stepdgreepermm = 360.0 / earthtotallen
-    iterator = int(searchredius * 100)
-    if scanunit == "mm":
-        #https://en.wikipedia.org/wiki/Decimal_degrees
-        stepdgree = 0.00000001
-    elif scanunit == "dm":
-        stepdgree = 0.00000010
-        iterator = int(iterator/10)
-    elif scanunit == "m":
-        stepdgree = 0.00000100
-        iterator = int(iterator/100)
     
+def getgpsarray(cenlat,cenlong,iterator,stepdgree,gpslist):
     for i in range(-iterator, iterator + 1):
         for j in range(-iterator, iterator + 1):
             lat = cenlat + i * stepdgree
@@ -301,13 +271,75 @@ def gengpsarray(gps,unit,rarius,gpslist):
 
             strlatlong = strlat + "," + strlong
             gpslist.append(strlatlong)
-            print(strlatlong)
-            #strline = password + " " + strlatlong + '\n'         
+
+            
+def gengpsarray(gps,unit,rarius,gpslist):
+
+    centlatlong = gps.split(",")
+    if len(centlatlong) != 2:
+        print("invalid gps argument")
+        return
+
+    cenlat = float(centlatlong[0])
+    cenlong = float(centlatlong[1])
+
+    
+    scanunit =  unit
+
+    #earth mean radius mm
+    #637813700
+    earthradius = 6371008800
+    #calculate real degree unit for argument unit
+    earthtotallen = math.pi * 2.0 * earthradius
+    #calc square step
+    stepdgreepermm = 360.0 / earthtotallen
+    
+    searchradiusmm = rarius * 1000
+    
+    if scanunit == "m" or scanunit == "all":
+        stepdgree = 0.00001000
+        iterator = int(searchradiusmm/1000)
+        getgpsarray(cenlat,cenlong,iterator,stepdgree,gpslist)
+        
+    elif scanunit == "dm" or scanunit == "all":
+        stepdgree = 0.00000100
+        iterator = int(searchradiusmm/100)
+        getgpsarray(cenlat,cenlong,iterator,stepdgree,gpslist)
+        
+    elif scanunit == "cm" or scanunit == "all":
+        stepdgree = 0.00000010
+        iterator = int(searchradiusmm/10)        
+        getgpsarray(cenlat,cenlong,iterator,stepdgree,gpslist)
+        
+    if scanunit == "mm" or scanunit == "all":
+        #https://en.wikipedia.org/wiki/Decimal_degrees
+        stepdgree = 0.00000001
+        iterator = int(searchradiusmm)
+        getgpsarray(cenlat,cenlong,iterator,stepdgree,gpslist)        
+    
+    #for i in range(-iterator, iterator + 1):
+    #    for j in range(-iterator, iterator + 1):
+    #        lat = cenlat + i * stepdgree
+    #        long = cenlong + j * stepdgree
+    #
+    #        strlat = '%.08f' % lat
+    #        strlong = '%.08f' % long
+    #
+    #        if lat > 0.0:
+    #            strlat = "+" + strlat
+    #        if long > 0.0:
+    #            strlong = "+" + strlong
+    #
+    #        strlatlong = strlat + "," + strlong
+    #        gpslist.append(strlatlong)
+    #        #print(strlatlong)
+    #        #strline = password + " " + strlatlong + '\n'         
             
                 
 
 #python geokeys.py --create --password donotqwerty --gps +40.73150390,-73.96328405 --round 64 --unit dm
 #python geokeys.py --recover --password donotqwerty --gps +40.73150390,-73.96328405 --round 64 --unit dm --radius 0.5
+#python geokeys.py --recover --password donotqwerty --gps +40.73150390,-73.96328405 --round 64 --unit all --radius 0.5
     
 def main():
     parser = argparse.ArgumentParser(description='Generate and recovery geocoin key.')
@@ -319,7 +351,7 @@ def main():
     parser.add_argument('--password', type=str, help='a password')
     parser.add_argument('--gps', type=str, help='gps coordinates to use')
     parser.add_argument('--round', type=int, default=1024, help='bcrypt lop round to use')
-    parser.add_argument('--unit', type=str, default='dm',help='search unit to use')
+    parser.add_argument('--unit', type=str, default='dm',help='search unit to use(m dm cm mm all)')
     parser.add_argument('--radius', type=float,default=0.5, help='search radius(m) to use')
       
     
@@ -393,6 +425,9 @@ def main():
                            jsonobj.update(balance = strbalance )
                            foutfile.write(json.dumps(jsonobj))
                            recoverylist.append(json.dumps(jsonobj))
+                           
+                if len(recoverylist) > 0:
+                    break
             
             foutfile.close()        
             
