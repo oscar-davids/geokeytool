@@ -17,7 +17,7 @@
  
 2. Python Script Test
 
--Install requirement python packages
+- Install requirement python packages
 
   sudo pip install -r requirements.txt
   
