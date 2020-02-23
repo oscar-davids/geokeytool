@@ -15,7 +15,7 @@
  
   libclibhash.so.5.1.0
  
-2. Python Script Test
+2. Preparing for Test
 
 - Install requirement python packages
 
