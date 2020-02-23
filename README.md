@@ -1,37 +1,39 @@
 
 1. Parallel Bcrypt Engine Build
 
-Get a copy of the geokeytool repository
+- Get a copy of the geokeytool repository
 
   git clone https://github.com/oscar-davids/geokeytool
 
-Run "make"
+- Run "make"
 
   cd geokeytool
   
   make
   
-check engine so file 
+- check engine so file 
  
  libclibhash.so.5.1.0
  
 2. Python Script Test
 
+-Install requirement python packages
+
 sudo pip install -r requirements.txt
   
-Install Bitcoin
+- Install Bitcoin client
 
   https://bitcoin.org/en/full-node
   
-  start bitcoin daemon mode
+- start bitcoin with daemon mode
 
 3. Generate locol bitcoin UTXO database
 
-  stop bitcoin daemon because can not  access bitcoin's database at once.
+- stop bitcoin daemon because can not  access bitcoin's database at once.
   
   bitcoin-cli stop
  
-  run script
+- run script
   
   python updatebtcdb.py $HOME/.bitcoin/chainstate
   
