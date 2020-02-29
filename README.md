@@ -146,14 +146,22 @@ We prove that neither the key nor the encryption are weakened by this system.
 The simplicity of the implementation allows us to get rid of: 
 
 * a middleman, 
+
 * a smart contract
+
 * a centralized recovery system, 
+
 * a online connection
 
+
 As we will see further below that empowers users to: 
+
 * create and memorize a key with very low chances of forgetting it 
+
 * transfer a key quickly verbally to another person
+
 * the entropy during the transfer does not need to be stored in clear text 
+
 * recover their key at a low cost
 
 Abstract:
@@ -206,26 +214,37 @@ example SCrypt or Argon2. We chose BCrypt because of its long successful lifetim
 To keep the keys deterministic, which is a requirement to be able to recover them, we needed to get rid of the randomness in the hashing function in the elliptic curve and replace it with something deterministic that is hard but not impossible to guess.
 
 input1 = password
+
 input2 = coordinates in decimal degrees
 
 
 Remark: The definition of which variable is contained in input 1 and 2 is arbitrary, but needs to be aligned on.
 
 prepare: 
+
 step1 BCrypt hashes the input1 with the salt==input2 at n rounds. This results in output1
+
 step2 BCrypt hashes the input2 with the salt==output1 at n rounds. This results in output2
+
 step3 ECDSA with output1 and output2==salt. This results into private key
 
 Rounds in bcrypt are defined to slow a single hash digest down to about 500ms on a state of the art GPU.
 
+
 Recovery GPU Time Cost (Jan 2020)
+
 2x bcrypt 2e19 rounds on Nvidia 1080ti
+
 estimated cost is 1$ per day since this is the max amount you could make with mining.
 
 On mm^2 the cost of recovery from 9m^2 is about 104 GPU days or 104$
+
 On cm^2 the cost of recovery from 9m^2 is about 24 GPU hours or 1$
+
 On dm^2 the cost of recovery from 9m^2 is about 14 GPU minutes or 0.01$
+
 On m^2 the cost of recovery from 9m^2 is about 9 GPU seconds or 0.0001$
+
 
 We can estimate using Shannon's Source Coding Theorem the maximum entropy in bits that such a system can provide
 
@@ -237,10 +256,15 @@ We can estimate using Shannon's Source Coding Theorem the maximum entropy in bit
 
 
 132 bits entropy can be reached with the following password length and location quantifier:
+
 a password of 9 chars, a charset of 95 and a location quantifier of mm (8+1)
+
 a password of 10 chars, a charset of 95 and a location quantifier of cm (7+1)
+
 a password of 11 chars, a charset of 95 and a location quantifier of dm (6+1)
+
 a password of 12 chars, a charset of 95 and a location quantifier of m (5+1)
+
 
 Lowering chars on the password will result in loss of appropriate entropy.
 Lowering space on quantifier will result in weakness against wordlist attacks.
