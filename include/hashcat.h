@@ -21,9 +21,18 @@ int   hashcat_session_destroy    (hashcat_ctx_t *hashcat_ctx);
 char *hashcat_get_log            (hashcat_ctx_t *hashcat_ctx);
 int   hashcat_get_status         (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_status);
 
-int  init_bcryptengine();
+int  init_bcryptengine(int automod);
 void exit_bcryptengine();
 int  get_enginecount();
+int  get_devicepower(int nchanal);
+
+void reset_device(int nchanal);
+void add_data(int nchanal,int nid,const char* pwd,const char* insolt);
+void get_data(int nchanal,int nid,char* outhash);
+int  runprocess(int nchanal, int nround);
+
+
+
 
 int  bcrypt_hashpass(const char* pwd,const char* insolt, int nround , char* outhash, int nchanal);
 
@@ -50,5 +59,8 @@ int  bcrypt_hashpass16(const char* pwd,const char* insolt, int nround , char* ou
 
 
 int   maintest(char* pwd, char* insolt, int nround);
+
+int   maintest2(char* infile,char* outfile, int nround);
+
 
 #endif // _HASHCAT_H
