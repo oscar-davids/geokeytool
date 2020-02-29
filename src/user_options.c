@@ -1675,8 +1675,8 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->workload_profile_chgd == false)
     {
-      user_options->optimized_kernel_enable = true;
-      user_options->workload_profile        = 3;
+      //user_options->optimized_kernel_enable = true; //oscar
+      //user_options->workload_profile        = 3; //oscar
     }
   }
 
