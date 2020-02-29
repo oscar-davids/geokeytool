@@ -23,9 +23,13 @@ typedef struct bcrypt_tmp
   u32 S1[256];
   u32 S2[256];
   u32 S3[256];
+  u32 bsolt;	
+  u32 salt_buf[4];
+
   u32 R[6];
 
 } bcrypt_tmp_t;
+
 
 // http://www.schneier.com/code/constants.txt
 
@@ -393,6 +397,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_init (KERN_ATTR_TMPS 
   if (gid >= gid_max) return;
 
   const u32 pw_len = pws[gid].pw_len;
+  
 
   u32 w[18];
 
@@ -449,10 +454,20 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_init (KERN_ATTR_TMPS 
 
   u32 salt_buf[4];
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
+  if(tmps[gid].bsolt)
+  {
+	  salt_buf[0] = tmps[gid].salt_buf[0];
+	  salt_buf[1] = tmps[gid].salt_buf[1];
+	  salt_buf[2] = tmps[gid].salt_buf[2];
+	  salt_buf[3] = tmps[gid].salt_buf[3];  
+  }
+  else
+  {
+	  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
+	  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+	  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
+	  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
+  }
 
   u32 P[18];
 
@@ -656,12 +671,22 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_loop (KERN_ATTR_TMPS 
    */
 
   u32 salt_buf[4];
+  if(tmps[gid].bsolt)
+  {
+	salt_buf[0] = tmps[gid].salt_buf[0];
+	salt_buf[1] = tmps[gid].salt_buf[1];
+	salt_buf[2] = tmps[gid].salt_buf[2];
+	salt_buf[3] = tmps[gid].salt_buf[3];  
+  }
+  else
+  {
+	salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
+	salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+	salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
+	salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
+  }
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
-
+ 
   /**
    * main loop
    */
