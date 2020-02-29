@@ -386,17 +386,17 @@ HC_API_CALL void *thread_calc_stdin (void *p)
 static int runcalc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  //user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  hashes_t             *hashes             = hashcat_ctx->hashes;
-  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
-  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
-  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
+  //hashes_t             *hashes             = hashcat_ctx->hashes;
+  //mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  //straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  //combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  //backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
-  const u32 attack_mode = user_options->attack_mode;
-  const u32 attack_kern = user_options_extra->attack_kern;
+  //const u32 attack_mode = user_options->attack_mode;
+  //const u32 attack_kern = user_options_extra->attack_kern;
 
 
   bcrypt_tmp_t* ptmp = (bcrypt_tmp_t*)hccalloc(device_param->nsspos, sizeof(bcrypt_tmp_t));
@@ -413,11 +413,7 @@ static int runcalc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   
   nrealround = 1 << workFactor;
   //if (hc_cuMemcpyDtoH (hashcat_ctx, &tmp, device_param->cuda_d_tmps, hashconfig->tmp_size) == -1) return -1;	
-		
 
-  	hc_timer_t timer_lookup;  
-	hc_timer_set (&timer_lookup);
-	
 
 	memset (device_param->pws_comp, 0, device_param->size_pws_comp);
     memset (device_param->pws_idx,  0, device_param->size_pws_idx);
@@ -507,7 +503,7 @@ static int runcalc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 		bool run_loop = true;
 		bool run_comp = true;
 
-		int salt_pos = 0;
+		//int salt_pos = 0;
 
 
 		if (run_init == true)
@@ -545,10 +541,6 @@ static int runcalc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 			u32 iter = nrealround;
 
 			u32 loop_step = device_param->kernel_loops;
-
-			hc_timer_set (&device_param->timer_speed);
-
-			
 
 			for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
 			{
