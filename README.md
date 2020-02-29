@@ -1,4 +1,6 @@
-# Copyright (C) Philipp Andreas Angele - All Rights Reserved # Written by Philipp Andreas Angele <philipp_angele@gmx.de>, Feb 2020 RSA: 66A8 6285 2AE0 C1D5 0733  C9C7 1A6C 6EC6 75F1 0E56 
+Copyright (C) Philipp Andreas Angele - All Rights Reserved 
+Written by Philipp Andreas Angele <philipp_angele@gmx.de>, Feb 2020 
+RSA: 66A8 6285 2AE0 C1D5 0733  C9C7 1A6C 6EC6 75F1 0E56 
 
 Geokeys
 
