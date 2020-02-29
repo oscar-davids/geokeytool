@@ -4,15 +4,8 @@ Written by Philipp Andreas Angele <philipp_angele@gmx.de>, Feb 2020
 
 RSA: 66A8 6285 2AE0 C1D5 0733  C9C7 1A6C 6EC6 75F1 0E56 
 
-Geokeys for Bitcoin and Ethereum and other killer apps like pgp
 
-
-
-# Copyright (C) Philipp Andreas Angele - All Rights Reserved
-# Written by Philipp Andreas Angele <philipp_angele@gmx.de>, Feb 2020
-
-Geokeys for Bitcoin and Ether and other killer apps like pgp, ssh copyright Philipp Andreas Angele June 2019
-
+Geokeys for Bitcoin and Ether and other killer apps like pgp, ssh
 
 Introduction:
 Today it is hard for anyone to recover a private key from memory. Brainkey implementations usually require the user to memorize a set of words. Most implementations want the user to remember a set of 12-24 words.
