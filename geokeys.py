@@ -18,6 +18,8 @@ import sys
 import sqlite3
 import subprocess
 import math
+#import tqdm
+
 
 
 from ecdsa import SigningKey, SECP256k1
@@ -33,16 +35,19 @@ modecreate = True
 blib = clbflib()
 
 enginecount = blib.getengincount()
-print(enginecount)
+print("\nDevice Count : " + str(enginecount))
 
 liblist = []
 liblist.append(blib)
 
 for i in range(1, enginecount):
     blibtmp = clbflib()
-    blibtmp.setchanel(i)
+    blibtmp.setchanel(i)    
     liblist.append(blibtmp)
 
+for i in range(0, enginecount):
+    print("Device#" + str(i+1) + " Thread Count : " + str(liblist[i].getpower()))
+    
 sbalancedb = "./dbbalance.db"
 
         
@@ -57,6 +62,16 @@ class Params(object):
     def __call__(self, x):
             return self.pas[0:31]
 
+def progress(count, total, status=''):
+    bar_len = 60
+    filled_len = int(round(bar_len * count / float(total)))
+
+    percents = round(100.0 * count / float(total), 1)
+    bar = '=' * filled_len + '-' * (bar_len - filled_len)
+
+    sys.stdout.write('[%s] %s%s    %s\r' % (bar, percents, '%', status))
+    sys.stdout.flush()
+    
 def checkdbpath(sdbpath):
     if os.path.isfile(sdbpath) == False:
         print("There is no coin UTXO database.")
@@ -254,6 +269,138 @@ def generatecoinkey(brecovery, ablib, password, gps, nround, bdebugflag,resultli
     resultlist.append(jsonstr)
     
     return
+
+def revoverycoinkey(brecovery, ablib, password, onegpslist, nround, bdebugflag,resultlist):
+
+    if len(password) == 0:
+        return
+    
+    npower = len(onegpslist)
+    
+    if npower == 0:
+        return
+    
+    ablib.reset_device()
+    
+    for i in range(0, npower):
+        gps = onegpslist[i]
+        centlatlong = gps.split(",")
+        if len(centlatlong) == 2:
+            salt = geoinfotohex(centlatlong[0],centlatlong[1])
+        else:
+            salt = "0123456789"
+        ablib.add_data(i,password,salt)
+    
+    ablib.runprocess(nround)
+    
+    pwhashlist = []
+    pwhashlist32 = []
+    saltseclist = []
+    for i in range(0, npower):
+        pwtemp = ablib.get_data(i)
+        pwhashlist.append(pwtemp)
+        
+        hashed_pw32 = pwtemp[29:60] + "P"         
+        saltsec = bfhashtohex(hashed_pw32)
+        
+        pwhashlist32.append(hashed_pw32) 
+        saltseclist.append(saltsec)
+            
+    ablib.reset_device()    
+    
+    for i in range(0, npower):
+        ablib.add_data(i,onegpslist[i],saltseclist[i])
+
+    ablib.runprocess(nround)
+    
+    gpshashlist = []
+    ecsdprikeylist = []
+    for i in range(0, npower):
+        gpshashtemp = ablib.get_data(i)
+        gpshashlist.append(gpshashtemp)
+        private_key = gpshashtemp[29:60] + "O" #Oscar
+        ecsdprikeylist.append(private_key)
+    
+    
+    for i in range(0, npower):
+        hashed_pw = pwhashlist[i]
+        hashed_gps = gpshashlist[i]
+        private_key = ecsdprikeylist[i]    
+
+        sk = SigningKey.generate(curve=SECP256k1, entropy=Params(pas=private_key))
+        vk = sk.get_verifying_key()
+
+        # (0)
+        privateKey0 = sk.to_string()
+
+        # (1)
+        pubkey = bytearray(b'\x04') + vk.to_string()
+
+        # (2)
+        hasher_sha256 = hashlib.sha256()
+        hasher_sha256.update(pubkey)
+        hashed_sha256 = hasher_sha256.digest()
+
+        # (3)
+        hasher_ripemd160 = hashlib.new('ripemd160')
+        hasher_ripemd160.update(hashed_sha256)
+        hashed_ripemd160 = hasher_ripemd160.digest()
+
+        # (4)
+        main_network_version = bytearray(b'\x00')
+        hashed_ripemd160_with_version = main_network_version + hashed_ripemd160
+
+        # (5)
+        hasher_sha256 = hashlib.sha256()
+        hasher_sha256.update(hashed_ripemd160_with_version)
+        hashed_ripemd160_with_version_sha256 = hasher_sha256.digest()
+
+        # (6)
+        hasher_sha256 = hashlib.sha256()
+        hasher_sha256.update(hashed_ripemd160_with_version_sha256)
+        hashed_ripemd160_with_version_roundtwo_sha256 = hasher_sha256.digest()
+
+        # (7)
+        checksum=hashed_ripemd160_with_version_roundtwo_sha256[0:4]
+
+        # (8)
+        bitcoin_address =  hashed_ripemd160_with_version + checksum
+
+        # (9)
+        bitcoin_address_base58 = base58.b58encode(bytes(bitcoin_address))
+
+        privateKey = binascii.b2a_hex(privateKey0)
+        publicKey =  binascii.hexlify(pubkey).decode("utf-8")
+        bitcoinaddress = binascii.hexlify(bitcoin_address).decode("utf-8")
+        bitcoinaddressbase58 = bitcoin_address_base58.decode("utf-8")
+        walletinputformat = wif(sk).decode("utf-8")
+        
+        
+        #print("private key            : " + privateKey)
+        # print("public key             : " + publicKey)
+        # print("public key sha256: " + binascii.hexlify(hashed_sha256).decode("utf-8"))
+        # print("public key ripemd160: " + binascii.hexlify(hashed_ripemd160).decode("utf-8"))
+        # print("public key ripemd160 and version: " + binascii.hexlify(hashed_ripemd160_with_version).decode("utf-8"))
+        # print("public key ripemd160 and version sha256: " + binascii.hexlify(hashed_ripemd160_with_version_sha256).decode("utf-8"))
+        # print("public key ripemd160 and version sha256 round two: " + binascii.hexlify(hashed_ripemd160_with_version_roundtwo_sha256).decode("utf-8"))
+        # print("public key checksum: " + binascii.hexlify(checksum).decode("utf-8"))           
+        ##print("bitcoin address: " + bitcoinaddress)
+        if brecovery == True and bdebugflag == True:
+            print("bitcoin address base58 : " + bitcoinaddressbase58)            
+        #print("wif: " + walletinputformat)
+        
+        jsonstr = "{" + "\n" + '''"password":''' + '''"''' + password + '''",''' + " \n"
+        jsonstr += '''"gps":''' + '''"''' + gps + '''",''' + " \n"
+        jsonstr += '''"bcrypt output1":''' + '''"''' + hashed_pw + '''",''' + " \n"
+        jsonstr += '''"bcrypt output2":''' + '''"''' + hashed_gps + '''",''' + " \n"
+        jsonstr += '''"private key":''' + '''"''' + privateKey + '''",''' + " \n"
+        jsonstr += '''"public key":'''+ '''"'''  + publicKey + '''",''' + " \n"
+        jsonstr += '''"bitcoin address":'''+ '''"'''  + bitcoinaddress + '''",''' + " \n" 
+        jsonstr += '''"bitcoin address base58":'''+ '''"'''  + bitcoinaddressbase58 + '''",''' + " \n"
+        jsonstr += '''"wif":''' +  '''"''' + walletinputformat + '''"''' + "\n" + "}"+ "\n"    
+        resultlist.append(jsonstr)
+    
+    return
     
 def getgpsarray(cenlat,cenlong,iterator,stepdgree,gpslist):
     for i in range(-iterator, iterator + 1):
@@ -406,22 +553,30 @@ def main():
                             
             i = 0       
             while i < searchcount:  
+            #for i in tqdm(range(0, searchcount)):
                 resultlist = []
                 procs = []
             
                 for index in range(0, enginecount):
-                    if i < searchcount:
-                        sgps = gpslist[i]
-                        #proc = Process(target=generatecoinkey, args=(liblist[index],password,gps,nround,resultlist)) 
-                        proc = Thread(target=generatecoinkey, args=(True, liblist[index],password,sgps,nround,bdebugflag,resultlist)) 
-                        
-                        procs.append(proc) 
-                        proc.start()
-                    i = i + 1
+                    nmaxpower = liblist[index].getpower()
+                    gpsonelist = []
+                    for gidx in range(0, nmaxpower):
+                        if i < searchcount:
+                            gpsonelist.append(gpslist[i])
+                        i = i + 1
+                               
+                    #proc = Process(target=generatecoinkey, args=(liblist[index],password,gps,nround,resultlist)) 
+                    proc = Thread(target=revoverycoinkey, args=(True, liblist[index],password,gpsonelist,nround,bdebugflag,resultlist)) 
                     
+                    procs.append(proc) 
+                    proc.start()                   
+                
+                
                 for proc in procs: 
                     proc.join()
-                 
+                    
+                progress(i, searchcount, status='Recovery Status')
+                
                 for strres in resultlist: 
                     if len(strres) > 0:
                         jsonobj = json.loads(strres)
