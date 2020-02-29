@@ -1,3 +1,13 @@
+# Copyright (C) Philipp Andreas Angele - All Rights Reserved
+# Written by Philipp Andreas Angele <philipp_angele@gmx.de>, Feb 2020 RSA: 66A8 6285 2AE0 C1D5 0733  C9C7 1A6C 6EC6 75F1 0E56
+
+Geokeys
+
+A ECDSA key pair is being built using one or many known secrets and one or many partially known secrets.
+Once this key has interacted with a blockchain, it is possible to recover it by creating all possible keys with the known secret the password and the partial known secret the location by guessing the missing part(s) of the partially secret the location.
+To identify which was the original key to recover, all created keys need to be looked up on a blockchain as only the one which has interacted with it will be traceable there.
+
+
 Prepare to create keys:
 
 1. Build Parallel Bcrypt Engine 
