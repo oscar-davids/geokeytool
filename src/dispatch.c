@@ -17,9 +17,32 @@
 #include "slow_candidates.h"
 #include "dispatch.h"
 
+#include "convert.h"
+
+
 #ifdef WITH_BRAIN
 #include "brain.h"
 #endif
+
+typedef struct bcrypt_tmp
+{
+  u32 E[18];
+
+  u32 P[18];
+
+  u32 S0[256];
+  u32 S1[256];
+  u32 S2[256];
+  u32 S3[256];
+  u32 bsolt;	
+  u32 salt_buf[4];
+
+  u32 R[6];
+
+} bcrypt_tmp_t;
+
+
+
 
 static u64 get_highest_words_done (const hashcat_ctx_t *hashcat_ctx)
 {
@@ -358,6 +381,344 @@ HC_API_CALL void *thread_calc_stdin (void *p)
   }
 
   return NULL;
+}
+
+static int runcalc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
+{
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
+  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+
+  const u32 attack_mode = user_options->attack_mode;
+  const u32 attack_kern = user_options_extra->attack_kern;
+
+
+  bcrypt_tmp_t* ptmp = (bcrypt_tmp_t*)hccalloc(device_param->nsspos, sizeof(bcrypt_tmp_t));
+
+
+  int nrealround = device_param->nround;  
+  int j = 0;
+  for ( j = 0; j < 50; j++){
+	  if (nrealround >> j == 0)
+		  break;
+  }
+  int workFactor = j - 1;  	
+  if (workFactor < 1 || workFactor > 50) return  -1;
+  
+  nrealround = 1 << workFactor;
+  //if (hc_cuMemcpyDtoH (hashcat_ctx, &tmp, device_param->cuda_d_tmps, hashconfig->tmp_size) == -1) return -1;	
+		
+
+  	hc_timer_t timer_lookup;  
+	hc_timer_set (&timer_lookup);
+	
+
+	memset (device_param->pws_comp, 0, device_param->size_pws_comp);
+    memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+
+	for(int i=0;i<device_param->nsspos;i++)
+	{
+		pw_add (device_param, (const u8 *) device_param->ppsstore[i].pw, (const int) strlen(device_param->ppsstore[i].pw));
+		//need to additional some
+		memcpy(ptmp[i].salt_buf,device_param->ppsstore[i].salt,16);
+		ptmp[i].salt_buf[0] = byte_swap_32 (ptmp[i].salt_buf[0]);
+		ptmp[i].salt_buf[1] = byte_swap_32 (ptmp[i].salt_buf[1]);
+		ptmp[i].salt_buf[2] = byte_swap_32 (ptmp[i].salt_buf[2]);
+		ptmp[i].salt_buf[3] = byte_swap_32 (ptmp[i].salt_buf[3]);
+	
+		ptmp[i].bsolt = 1;
+	}	
+
+	const u64 pws_cnt = device_param->pws_cnt;
+
+
+	if (pws_cnt)
+	{
+		//if (run_copy (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
+		
+	  if (device_param->is_cuda == true)
+      {
+        if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+
+        const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+        const u32 off = pw_idx->off;
+
+        if (off)
+        {
+          if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
+        }
+      }
+
+      if (device_param->is_opencl == true)
+      {
+	  
+        if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_idx, CL_TRUE, 0, pws_cnt * sizeof (pw_idx_t), device_param->pws_idx, 0, NULL, NULL) == -1) return -1;
+
+        const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+        const u32 off = pw_idx->off;
+
+        if (off)
+        {
+		
+          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL) == -1) return -1;
+        }
+      }
+
+      if (run_kernel_decompress (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
+	  
+
+
+	 //copy salt
+	if (device_param->is_cuda == true)
+	{
+	  //if (hc_cuMemcpyDtoH (hashcat_ctx, &num_cracked, device_param->cuda_d_result, sizeof (u32)) == -1) return -1;
+	  if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_tmps,   ptmp,       hashconfig->tmp_size * pws_cnt)              == -1) return -1;
+	}
+
+	if (device_param->is_opencl == true)
+	{
+	   if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, hashconfig->tmp_size * pws_cnt,ptmp,0, NULL, NULL) == -1) return -1;
+
+		 //if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_salt_bufs,   CL_TRUE, 0, sizeof(salt_t),&tmpsolt,0, NULL, NULL) == -1) return -1;
+	}
+	  
+	 
+
+	  
+	  
+	
+		//if (run_cracker (hashcat_ctx, device_param, pws_cnt) == -1)
+		//{
+		//  return -1;
+		//}
+
+
+
+	  
+		bool run_init = true;
+		bool run_loop = true;
+		bool run_comp = true;
+
+		int salt_pos = 0;
+
+
+		if (run_init == true)
+		{
+			if (device_param->is_cuda == true)
+			{
+			 	if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_pws_buf, device_param->cuda_d_pws_amp_buf, pws_cnt * sizeof (pw_t)) == -1) return -1;
+			}
+
+			if (device_param->is_opencl == true)
+			{
+			 	if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_amp_buf, device_param->opencl_d_pws_buf, 0, 0, pws_cnt * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
+			}
+
+			if (user_options->slow_candidates == true)
+			{
+			}
+			else
+			{
+			 	if (run_kernel_amp (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
+			}
+
+			if (run_kernel (hashcat_ctx, device_param, KERN_RUN_1, pws_cnt, false, 0) == -1) return -1;	
+		}
+
+#if defined (_WIN)
+		device_param->timer_speed.QuadPart = 0;
+#else
+		device_param->timer_speed.tv_sec = 0;
+#endif
+
+
+		if (run_loop == true)
+		{
+			u32 iter = nrealround;
+
+			u32 loop_step = device_param->kernel_loops;
+
+			hc_timer_set (&device_param->timer_speed);
+
+			
+
+			for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
+			{
+			 u32 loop_left = iter - loop_pos;
+
+			 loop_left = MIN (loop_left, loop_step);
+
+			 device_param->kernel_params_buf32[28] = loop_pos;
+			 device_param->kernel_params_buf32[29] = loop_left;
+
+			 if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_cnt, true, slow_iteration) == -1) return -1;
+
+			 //bug?
+			 //while (status_ctx->run_thread_level2 == false) break;
+			 if (status_ctx->run_thread_level2 == false) break;
+
+			 /**
+			  * speed
+			  */
+#if 0
+			 const float iter_part = (float) (loop_pos + loop_left) / iter;
+
+			 const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
+
+			 double speed_msec = hc_timer_get (device_param->timer_speed);
+
+			 const u32 speed_pos = device_param->speed_pos;
+
+			 device_param->speed_cnt[speed_pos] = perf_sum_all;
+
+			 device_param->speed_msec[speed_pos] = speed_msec;
+#if 0
+				 if (user_options->speed_only == true)
+				 {
+				   if (speed_msec > 4000)
+				   {
+					 device_param->outerloop_multi *= (double) iter / (double) (loop_pos + loop_left);
+
+					 device_param->speed_pos = 1;
+
+					 device_param->speed_only_finish = true;
+
+					 return 0;
+				   }
+				 }
+#endif				 
+#endif				 
+			 
+			}
+			
+		}
+
+		// init2 and loop2 are kind of special, we use run_loop for them, too
+
+		if (run_loop == true)
+		{
+		// note: they also do not influence the performance screen
+		// in case you want to use this, this cane make sense only if your input data comes out of tmps[]
+
+			if (hashconfig->opts_type & OPTS_TYPE_INIT2)
+			{
+			 if (run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT2, pws_cnt, false, 0) == -1) return -1;
+			}
+
+			if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
+			{
+			 u32 iter = nrealround;
+
+			 u32 loop_step = device_param->kernel_loops;
+
+			 for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
+			 {
+			   u32 loop_left = iter - loop_pos;
+
+			   loop_left = MIN (loop_left, loop_step);
+
+			   device_param->kernel_params_buf32[28] = loop_pos;
+			   device_param->kernel_params_buf32[29] = loop_left;
+
+			   if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2, pws_cnt, true, slow_iteration) == -1) return -1;
+
+			   //bug?
+			   //while (status_ctx->run_thread_level2 == false) break;
+			   if (status_ctx->run_thread_level2 == false) break;
+			 }
+			}
+		}
+
+		if (run_comp == true)
+		{		
+		    if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, false, 0) == -1) return -1;		
+		}
+
+
+		
+		 if (device_param->is_cuda == true)
+		 {
+			if (hc_cuMemcpyDtoH (hashcat_ctx, ptmp, device_param->cuda_d_tmps, hashconfig->tmp_size * pws_cnt) == -1) return -1;	
+		 }
+		 if (device_param->is_opencl == true)
+		 {
+			if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, hashconfig->tmp_size* pws_cnt,  ptmp, 0, NULL, NULL) == -1) return -1; 
+		 }
+	}
+
+	for(int i=0;i<device_param->nsspos;i++)
+	{
+		//pw_add (device_param, (const u8 *) pthreadparam->psssalt[i].pw, (const int) strlen(pthreadparam->psssalt[i].pw));
+		//need to additional some
+		//memcpy(ptmp[i].salt_buf,pthreadparam->psssalt[i].salt,16);
+		//ptmp[i].bsolt = 1;
+
+		//void encodeRadix64(char* insalt, char* outslat, int round)
+
+		char encodesalt[128] = {0,};	
+		u32 encsalt[6] = {0,};	
+		char saltrealin[64] = {0,};
+
+		strcpy(encodesalt, device_param->ppsstore[i].salt);	
+
+		sprintf(saltrealin, "$2a$%02d$0000000000000000000000", workFactor);	
+
+		char *ptr = encodesalt;
+		for (int i = 0; i < 4; i++) {
+			u32 tmp = 0;
+			for (int j = 0; j < 4; j++) {
+				tmp <<= 8;
+				tmp |= (unsigned char)*ptr;
+				if (!*ptr) {
+					tmp <<= 8 * (3 - j);
+					break;
+				}
+				else ptr++;
+			}
+			encsalt[i] = tmp;
+			BF_swap(&encsalt[i], 1);
+		}
+		
+		BF_encode(encodesalt, encsalt, 16);
+
+		for (int i = 0; i < 22; i++)
+		{
+			saltrealin[7 + i] = encodesalt[i];
+		}
+		
+		strcpy(device_param->ppsstore[i].hash,saltrealin);
+
+		u32 tmp_digest[6];
+		
+		tmp_digest[0] = byte_swap_32 (ptmp[i].R[0]);
+		tmp_digest[1] = byte_swap_32 (ptmp[i].R[1]);
+		tmp_digest[2] = byte_swap_32 (ptmp[i].R[2]);
+		tmp_digest[3] = byte_swap_32 (ptmp[i].R[3]);
+		tmp_digest[4] = byte_swap_32 (ptmp[i].R[4]);
+		tmp_digest[5] = byte_swap_32 (ptmp[i].R[5]);		
+
+		base64_encode (int_to_bf64, (const u8 *) tmp_digest, 23, (u8 *) device_param->ppsstore[i].hash+ 7 + 22);
+		device_param->ppsstore[i].hash[7 + 22 + 31] = '\0'; // base64_encode wants to pad
+		
+		//printf("%s\n",device_param->ppsstore[i].hash);
+		//outhash[7 + 22 + 31] = '\0'; // base64_encode wants to pad
+	}	
+	device_param->pws_cnt = 0;
+
+  hcfree(ptmp);
+
+  device_param->kernel_accel_prev = device_param->kernel_accel;
+  device_param->kernel_loops_prev = device_param->kernel_loops;
+
+  return 0;
 }
 
 static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
@@ -1585,3 +1946,35 @@ HC_API_CALL void *thread_calc (void *p)
 
   return NULL;
 }
+
+HC_API_CALL void *thread_runcalc (void *p)
+{
+  thread_param_t *thread_param = (thread_param_t *) p;
+
+  hashcat_ctx_t *hashcat_ctx = thread_param->hashcat_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  if (backend_ctx->enabled == false) return NULL;
+
+  hc_device_param_t *device_param = backend_ctx->devices_param + thread_param->tid;
+
+  if (device_param->skipped) return NULL;
+
+  if (device_param->skipped_warning == true) return NULL;
+
+  if (device_param->is_cuda == true)
+  {
+	if (hc_cuCtxSetCurrent (hashcat_ctx, device_param->cuda_context) == -1) return NULL;
+  }
+
+  if (runcalc (hashcat_ctx, device_param) == -1)
+  {
+	status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+	status_ctx->devices_status = STATUS_ERROR;
+  }
+
+  return NULL;
+}
+
+
