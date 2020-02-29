@@ -2,6 +2,12 @@ import ctypes
 
 lib = ctypes.cdll.LoadLibrary("./libclibhash.so.5.1.0")
 
+        
+#void reset_device(int nchanal);
+#void add_data(int nchanal,int nid,const char* pwd,const char* insolt);
+#void get_data(int nchanal,int nid,char* outhash);
+#int  runprocess(int nchanal, int nround);
+
 class clbflib:
 
     binit = 1
@@ -12,10 +18,11 @@ class clbflib:
         #print('clbflib created')
         if clbflib.binit == 1:
             print("\nLoading GPU opencl kernel.....")
-            lib.init_bcryptengine()
+            lib.init_bcryptengine(1)
             clbflib.binit = 0
             clbflib.nengincount = lib.get_enginecount()
         self.chanel = 0
+        self.npower = 0
   
     # Calling destructor 
     def __del__(self): 
@@ -33,7 +40,34 @@ class clbflib:
         #print("Destructor called")
         clbflib.nengincount = lib.get_enginecount()
         return clbflib.nengincount
-            
+
+    def getpower(self): 
+        #print("Destructor called")
+        self.npower = lib.get_devicepower(self.chanel)
+        return self.npower
+        
+    def reset_device(self): 
+        #print("Destructor called")
+        lib.reset_device(self.chanel)
+    
+    def add_data(self,nid,pwd,salt): 
+        #print("Destructor called")
+        lib.add_data(self.chanel,nid,pwd,salt)    
+     
+    def get_data(self,nid): 
+        #print("Destructor called")
+        outstr = "\0" * 100
+        lib.get_data(self.chanel,nid,outstr)
+        resstr = outstr[0:60]
+        return resstr        
+    
+    def runprocess(self,nround): 
+        #print("Destructor called")        
+        lib.runprocess(self.chanel,nround)
+        
+
+
+    
     def process(self,spass,ssalt,nround):
         
         outstr = "\0" * 100
