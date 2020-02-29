@@ -2290,6 +2290,7 @@ int hc_clSetKernelArg (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, cl_uint arg
 
 int hc_clEnqueueWriteBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write, size_t offset, size_t size, const void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
+
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
@@ -2923,6 +2924,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     bool run_loop = true;
     bool run_comp = true;
 
+
     if (run_init == true)
     {
       if (device_param->is_cuda == true)
@@ -3014,6 +3016,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       u32 iter = hashes->salts_buf[salt_pos].salt_iter;
 
       u32 loop_step = device_param->kernel_loops;
+
 
       for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
       {
@@ -3954,6 +3957,8 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
 int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num)
 {
+
+
   device_param->kernel_params_decompress_buf64[3] = num;
 
   u64 num_elements = num;
@@ -4705,6 +4710,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
           }
         }
       }
+
 
       if (choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_cnt, fast_iteration, salt_pos) == -1) return -1;
 
@@ -6586,6 +6592,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       return -1;
     }
   }
+
 
   backend_ctx->target_msec  = TARGET_MSEC_PROFILE[user_options->workload_profile - 1];
 
@@ -9823,6 +9830,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     u32 kernel_accel_min = device_param->kernel_accel_min;
     u32 kernel_accel_max = device_param->kernel_accel_max;
 
+	
+
     /**
      * We need a kernel accel limiter otherwise we will allocate too much memory (Example 4* GTX1080):
      * 4 (gpus) * 260 (sizeof pw_t) * 3 (pws, pws_comp, pw_pre) * 20 (MCU) * 1024 (threads) * 1024 (accel) = 65,431,142,400 bytes RAM!!
@@ -10204,6 +10213,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     hardware_power_all += device_param->hardware_power;
 
+	//oscar
+	int npower = device_param->hardware_power * device_param->kernel_accel_max;
+	device_param->ppsstore = hccalloc(npower, sizeof(pwsalt_t));
+    device_param->nsspos = 0;
+
     EVENT_DATA (EVENT_BACKEND_DEVICE_INIT_POST, &backend_devices_idx, sizeof (int));
   }
 
@@ -10242,6 +10256,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     hcfree (device_param->brain_link_in_buf);
     hcfree (device_param->brain_link_out_buf);
     #endif
+	hcfree(device_param->ppsstore);//oscar
 
     if (device_param->is_cuda == true)
     {
@@ -10500,6 +10515,8 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     device_param->brain_link_in_buf   = NULL;
     device_param->brain_link_out_buf  = NULL;
     #endif
+
+	    
   }
 }
 
