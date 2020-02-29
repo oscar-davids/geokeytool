@@ -810,6 +810,16 @@ typedef struct user
 
 } user_t;
 
+//oscar
+typedef struct pwsalt
+{
+  char pw[64];
+  char salt[32];
+  char hash[64];
+
+} pwsalt_t;
+
+
 typedef enum split_origin
 {
   SPLIT_ORIGIN_NONE   = 0,
@@ -1331,6 +1341,10 @@ typedef struct hc_device_param
   u32     kernel_params_decompress_buf32[PARAMCNT];
   u64     kernel_params_decompress_buf64[PARAMCNT];
 
+  //ocar
+  pwsalt_t* 		ppsstore;
+  int				nsspos;
+  int				nround;
   // API: cuda
 
   bool              is_cuda;
@@ -2527,10 +2541,13 @@ typedef struct thread_param
   char	pass[SALT_MAX];
   char	salt[SALT_MAX];
   char	hash[SALT_MAX];
-  const char* ppaasword;
-  const char* psalt;
-  char* pouthash;
-  int   nround;
+
+  //pwsalt_t*   psssalt;
+  //int 		  npsscount;
+  //const char* ppaasword;
+  //const char* psalt;
+  //char* 	  pouthash;
+  //int   	  nround;
 
 } thread_param_t;
 
