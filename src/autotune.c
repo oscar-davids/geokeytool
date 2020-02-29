@@ -236,9 +236,10 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     }
   }
 
+
   // now the same for kernel-accel but with the new kernel-loops from previous loop set
-//  #define STEPS_CNT 16 //oscar
-  #define STEPS_CNT 1 
+
+  #define STEPS_CNT 16
 
   if (kernel_accel_min < kernel_accel_max)
   {
@@ -248,6 +249,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (kernel_accel_try < kernel_accel_min) continue;
       if (kernel_accel_try > kernel_accel_max) break;
+
       double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops);
 
       if (exec_msec > target_msec) break;
@@ -258,6 +260,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // now find the middle balance between kernel_accel and kernel_loops
   // while respecting allowed ranges at the same time
+
+
 
   if (kernel_accel < kernel_loops)
   {
@@ -417,12 +421,17 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // store
 
+
   device_param->kernel_accel = kernel_accel;
   device_param->kernel_loops = kernel_loops;
 
   const u32 kernel_power = device_param->hardware_power * device_param->kernel_accel;
 
   device_param->kernel_power = kernel_power;
+
+  //oscar
+  //device_param->ppsstore = hccalloc(kernel_power, sizeof(pwsalt_t));
+  //device_param->nsspos = 0;
 
   return 0;
 }
