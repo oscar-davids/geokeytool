@@ -2161,14 +2161,13 @@ void exit_bcryptengine()
 
 #if 1
   mask_ctx_t     *mask_ctx      = hashcat_ctx->mask_ctx;
-  backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
+  //backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
   
   status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
 
 
   if(brecoverymode == 0)
   {	  	
-	  int rc_final = -1;
 	 
 	  if (mask_ctx->masks_cnt)
 	  {
@@ -2194,7 +2193,7 @@ void exit_bcryptengine()
   else
   {
 
-  if(binitengine != 1) return 0;
+  if(binitengine != 1) return;
 
 	
 	backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
@@ -2490,7 +2489,8 @@ int  runprocess(int nchanal, int nround)
 	u32 speed_pos = backend_ctx->devices_param[nchanal].speed_pos;			
 	backend_ctx->devices_param[nchanal].speed_cnt[speed_pos] = backend_ctx->devices_param[nchanal].kernel_power;			
 	backend_ctx->devices_param[nchanal].speed_msec[speed_pos] = speed_msec;
-	speed_pos = (speed_pos++)%2;
+	int ntmp = speed_pos + 1;
+	speed_pos = ntmp % 2;
 	backend_ctx->devices_param[nchanal].speed_pos = speed_pos; 
 	
 	//printf("++++ oscar %d %.8f %d\n",speed_pos,speed_msec, backend_ctx->devices_param[nchanal].kernel_power);		
@@ -2716,13 +2716,13 @@ int   maintest2(char* infile,char* outfile, int nround)
 
   proc_stop = time (NULL);
 
-	hashconfig_t   *hashconfig	  = hashcat_ctx->hashconfig;
+	//hashconfig_t   *hashconfig	  = hashcat_ctx->hashconfig;
 	//hashes_t	   *hashes		  = hashcat_ctx->hashes;
 	//mask_ctx_t	   *mask_ctx	  = hashcat_ctx->mask_ctx;
 	backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
 	//outcheck_ctx_t *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
 	//restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
-	status_ctx_t   *status_ctx	  = hashcat_ctx->status_ctx;
+	//status_ctx_t   *status_ctx	  = hashcat_ctx->status_ctx;
 	
 //main loop
 	int ndevicepower = 18;//get_devicepower(0) - 10;
