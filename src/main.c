@@ -1092,6 +1092,18 @@ int main (int argc, char **argv)
     if(maintest(argv[1],argv[2],nround) > -5)
 	 return 0;
   }
+
+
+  if (argc == 5 && strcmp(argv[1], "-l") == 0)
+  {
+  	printf("invalid argument\n");
+	printf("ex. ./clibhash -l intest.txt out.txt 1024\n");
+	int nround = atoi(argv[4]);
+	if(maintest2(argv[2],argv[3],nround) > -5)
+	 return 0;
+	
+	return  0;
+  }
   
 
   if (argc != 5 || strcmp(argv[1], "-l") != 0)
