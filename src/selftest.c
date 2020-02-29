@@ -23,9 +23,13 @@ typedef struct bcrypt_tmp
   u32 S1[256];
   u32 S2[256];
   u32 S3[256];
+  u32 bsolt;	
+  u32 salt_buf[4];
+
   u32 R[6];
 
 } bcrypt_tmp_t;
+
 
 
 
@@ -523,7 +527,15 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 	tmpsolt.salt_buf[1] = byte_swap_32 (tmpsolt.salt_buf[1]);
 	tmpsolt.salt_buf[2] = byte_swap_32 (tmpsolt.salt_buf[2]);
 	tmpsolt.salt_buf[3] = byte_swap_32 (tmpsolt.salt_buf[3]);
-		  
+
+#if 0
+	printf("\n --salt hex S-- \n");
+	u8 *pptmp = (u8 *)tmpsolt.salt_buf;
+	for(int i=0;i<16;i++)
+		printf("%02x",pptmp[i]);		
+	printf("\n --salt hex E-- \n");
+#endif	
+	
 	if (device_param->is_cuda == true)
 	{
 	  //if (hc_cuMemcpyDtoH (hashcat_ctx, &num_cracked, device_param->cuda_d_result, sizeof (u32)) == -1) return -1;
