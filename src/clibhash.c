@@ -1183,6 +1183,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   user_options_preprocess (hashcat_ctx);
 
+
   user_options_extra_init (hashcat_ctx);
 
   user_options_postprocess (hashcat_ctx);
@@ -1499,15 +1500,14 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
 
   if (status_ctx == NULL) return -1; // way too early
 
-
-  if (status_ctx->accessible == false)
+  if (status_ctx->accessible == false)  
   {
     if (status_ctx->hashcat_status_final->msec_running > 0)
     {
       memcpy (hashcat_status, status_ctx->hashcat_status_final, sizeof (hashcat_status_t));
       return 0;
     }
-
+	
     return -1; // still too early
   }
 
@@ -1629,10 +1629,19 @@ time_t proc_stop;
 int rc_final = -1;
 int binitengine = -1;
 
-int  init_bcryptengine()
+int bautomode = 0;
+int brecoverymode = 0;
+
+int ndevicecount = 0;
+
+
+
+int  init_bcryptengine(int automode)
 {
   proc_start = time (NULL);
- 
+
+  bautomode = automode;
+
 	
   int ncomplete = (int)proc_start;
 
@@ -1664,10 +1673,19 @@ int  init_bcryptengine()
 	return -1;
   }
 
+
   user_options = hashcat_ctx->user_options;
-  user_options->benchmark = true;
-  user_options->hash_mode_chgd = true; 
+
   user_options->hash_mode = 3200;
+  user_options->hash_mode_chgd = true;   
+  //if(bautomode)
+  //	  user_options->attack_mode == ATTACK_MODE_STRAIGHT;
+  //else
+	  user_options->benchmark = true;
+  if(bautomode){
+	  user_options->optimized_kernel_enable = false;
+      user_options->workload_profile        = 2;
+  }
 
   // init a hashcat session; this initializes backend devices, hwmon, etc
 
@@ -1680,15 +1698,18 @@ int  init_bcryptengine()
 	return -1;
   }	
 
+  
+
   	hashconfig_t   *hashconfig	  = hashcat_ctx->hashconfig;
 	hashes_t	   *hashes		  = hashcat_ctx->hashes;
 	mask_ctx_t	   *mask_ctx	  = hashcat_ctx->mask_ctx;
-	//backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
+	backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
 	//outcheck_ctx_t *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
-	//restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
+	restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
 	status_ctx_t   *status_ctx	  = hashcat_ctx->status_ctx;
 	straight_ctx_t *straight_ctx  = hashcat_ctx->straight_ctx;
 	user_options_t *user_options  = hashcat_ctx->user_options;
+	logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   
 	status_ctx->devices_status = STATUS_INIT;
   
@@ -1716,7 +1737,6 @@ int  init_bcryptengine()
 	/**
 	 * generate hashlist filename for later use
 	 */
-  
 	if (hashes_init_filename (hashcat_ctx) == -1) return -1;
   
 	/**
@@ -1765,7 +1785,6 @@ int  init_bcryptengine()
   
 	  //EVENT (EVENT_POTFILE_REMOVE_PARSE_POST);
 	}
-  
 	/**
 	 * load hashes, stage 3, update cracked results from potfile
 	 */
@@ -1775,7 +1794,6 @@ int  init_bcryptengine()
 	/**
 	 * potfile show/left handling
 	 */
-  
 	if (user_options->show == true)
 	{
 	  status_ctx->devices_status = STATUS_RUNNING;
@@ -1819,7 +1837,6 @@ int  init_bcryptengine()
   
 	  return -1;
 	}
-  
 	/**
 	 * maybe all hashes were cracked, we can exit here
 	 */
@@ -1840,7 +1857,6 @@ int  init_bcryptengine()
   
 	  return 0;
 	}
-  
 	/**
 	 * load hashes, stage 4, automatic Optimizers
 	 */
@@ -1868,7 +1884,6 @@ int  init_bcryptengine()
 	/**
 	 * bitmaps
 	 */
-  
 	//EVENT (EVENT_BITMAP_INIT_PRE);
   
 	if (bitmap_ctx_init (hashcat_ctx) == -1) return -1;
@@ -1938,7 +1953,6 @@ int  init_bcryptengine()
 	 */
   
 	if (status_progress_init (hashcat_ctx) == -1) return -1;
-  
 	/**
 	 * main screen
 	 */
@@ -1956,16 +1970,188 @@ int  init_bcryptengine()
 	 */
   
 	EVENT (EVENT_BACKEND_SESSION_PRE);
-  
-	if (backend_session_begin (hashcat_ctx) == -1) return -1;
-  
-	EVENT (EVENT_BACKEND_SESSION_POST);
-	
-  	binitengine = 1;
-	
 
-  return 0;
-  
+	if (backend_session_begin (hashcat_ctx) == -1) return -1;
+
+	EVENT (EVENT_BACKEND_SESSION_POST);
+
+
+
+	if(bautomode == 0){
+
+		backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
+		ndevicecount = backend_ctx->backend_devices_active;
+	
+	  	binitengine = 1;
+		return 0;
+	}
+
+	// auto mode
+
+
+	status_ctx->run_thread_level1 = true;
+	status_ctx->run_thread_level2 = true;
+
+	status_ctx->devices_status = STATUS_INIT;
+
+	logfile_generate_subid (hashcat_ctx);
+
+	logfile_sub_msg ("START");
+
+	status_progress_reset (hashcat_ctx);
+
+	status_ctx->msec_paused = 0;
+
+	status_ctx->words_off = 0;
+	status_ctx->words_cur = 0;
+
+	if (restore_ctx->restore_execute == true)
+	{
+	restore_ctx->restore_execute = false;
+
+	restore_data_t *rd = restore_ctx->rd;
+
+	status_ctx->words_off = rd->words_cur;
+	status_ctx->words_cur = status_ctx->words_off;
+
+	// --restore always overrides --skip
+
+	user_options->skip = 0;
+	}
+
+	if (user_options->skip > 0)
+	{
+	status_ctx->words_off = user_options->skip;
+	status_ctx->words_cur = status_ctx->words_off;
+
+	user_options->skip = 0;
+	}
+
+	backend_session_reset (hashcat_ctx);
+
+	cpt_ctx_reset (hashcat_ctx);
+
+	/**
+	* Update attack-mode specific stuff based on mask
+	*/
+
+	if (mask_ctx_update_loop (hashcat_ctx) == -1) return 0;
+
+	/**
+	* Update attack-mode specific stuff based on wordlist
+	*/
+
+	if (straight_ctx_update_loop (hashcat_ctx) == -1) return 0;
+
+	// words base
+
+	const u64 amplifier_cnt = user_options_extra_amplifier (hashcat_ctx);
+
+	status_ctx->words_base = status_ctx->words_cnt / amplifier_cnt;
+
+	EVENT (EVENT_CALCULATED_WORDS_BASE);
+
+	if (user_options->keyspace == true)
+	{
+	status_ctx->devices_status = STATUS_RUNNING;
+
+	return 0;
+	}
+
+	// restore stuff
+
+	if (status_ctx->words_off > status_ctx->words_base)
+	{
+	event_log_error (hashcat_ctx, "Restore value is greater than keyspace.");
+
+	return -1;
+	}
+
+	const u64 progress_restored = status_ctx->words_off * amplifier_cnt;
+
+	for (u32 i = 0; i < hashes->salts_cnt; i++)
+	{
+	status_ctx->words_progress_restored[i] = progress_restored;
+	}
+
+#ifdef WITH_BRAIN
+	if (user_options->brain_client == true)
+	{
+	user_options->brain_attack = brain_compute_attack (hashcat_ctx);
+	}
+#endif
+
+	/**
+	* limit kernel loops by the amplification count we have from:
+	* - straight_ctx, combinator_ctx or mask_ctx for fast hashes
+	* - hash iteration count for slow hashes
+	* this is required for autotune
+	*/
+
+	backend_ctx_devices_kernel_loops (hashcat_ctx);
+
+	/**
+	* prepare thread buffers
+	*/
+
+	thread_param_t *threads_param = (thread_param_t *) hccalloc (backend_ctx->backend_devices_cnt, sizeof (thread_param_t));
+
+	hc_thread_t *c_threads = (hc_thread_t *) hccalloc (backend_ctx->backend_devices_cnt, sizeof (hc_thread_t));
+
+	/**
+	* create autotune threads
+	*/
+
+	EVENT (EVENT_AUTOTUNE_STARTING);
+
+	status_ctx->devices_status = STATUS_AUTOTUNE;
+
+	for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+	{
+	thread_param_t *thread_param = threads_param + backend_devices_idx;
+
+	thread_param->hashcat_ctx = hashcat_ctx;
+	thread_param->tid		  = backend_devices_idx;
+
+	hc_thread_create (c_threads[backend_devices_idx], thread_autotune, thread_param);
+	}
+
+	hc_thread_wait (backend_ctx->backend_devices_cnt, c_threads);
+
+	//thread_param_t *thread_param = threads_param + 0;  
+	//thread_param->hashcat_ctx = hashcat_ctx;
+	//thread_param->tid		  = 0;
+
+	//thread_autotune(thread_param);
+
+	EVENT (EVENT_AUTOTUNE_FINISHED);
+
+	/**
+	* find same backend devices and equal results
+	*/
+
+	backend_ctx_devices_sync_tuning (hashcat_ctx);
+
+	/**
+	* autotune modified kernel_accel, which modifies backend_ctx->kernel_power_all
+	*/
+
+	backend_ctx_devices_update_power (hashcat_ctx);
+
+	/**
+	* Begin loopback recording
+	*/
+
+	if (user_options->loopback == true)
+	{
+		loopback_write_open (hashcat_ctx);
+	}
+
+	
+	ndevicecount = backend_ctx->backend_devices_active;
+	
+	binitengine = 1;
+	return 0;
   
 }
 void exit_bcryptengine()
@@ -1979,30 +2165,50 @@ void exit_bcryptengine()
   
   status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
 
-  
-  int rc_final = -1;
- 
-  if (mask_ctx->masks_cnt)
-  {
-    for (u32 masks_pos = mask_ctx->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
-    {
-      mask_ctx->masks_pos = masks_pos;	  
 
-      if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+  if(brecoverymode == 0)
+  {	  	
+	  int rc_final = -1;
+	 
+	  if (mask_ctx->masks_cnt)
+	  {
+	    for (u32 masks_pos = mask_ctx->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
+	    {
+	      mask_ctx->masks_pos = masks_pos;	  
 
-      if (status_ctx->run_main_level2 == false) break;
-    }
+	      if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
 
-    if (status_ctx->run_main_level2 == true)
-    {
-      if (mask_ctx->masks_pos + 1 == mask_ctx->masks_cnt) mask_ctx->masks_pos = 0;
-    }
+	      if (status_ctx->run_main_level2 == false) break;
+	    }
+
+	    if (status_ctx->run_main_level2 == true)
+	    {
+	      if (mask_ctx->masks_pos + 1 == mask_ctx->masks_cnt) mask_ctx->masks_pos = 0;
+	    }
+	  }
+	  else
+	  {
+	    if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+	  }
   }
   else
   {
-    if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
-  }
 
+  if(binitengine != 1) return 0;
+
+	
+	backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
+	
+	for (int device_id = 0; device_id < backend_ctx->backend_devices_active; device_id++)
+	{
+		double dmssec  = backend_ctx->devices_param[device_id].speed_msec[0] + backend_ctx->devices_param[device_id].speed_msec[1];
+		int  power  = backend_ctx->devices_param[device_id].speed_cnt[0] + backend_ctx->devices_param[device_id].speed_cnt[1];
+		float fspeed = dmssec / (float)power;
+		float fround = 1000.0 / fspeed;
+        printf("Speed.#%d.........: %.2fH/s (%.2fms)\n", device_id + 1,fround, fspeed);
+	}
+	
+  }
 #endif   
 	// finalize backend session
 	//  status_benchmark (hashcat_ctx);
@@ -2073,7 +2279,7 @@ int  bcrypt_hashpass(const char* pwd,const char* insolt, int nround , char* outh
 	}
 
 	//predecide salt
-	sprintf(salttemplate, "$2a$%02d$0000000000000000000000", workFactor);	
+	sprintf(salttemplate, "$2a$%02d$0000000000000000000000", workFactor);
 
     thread_param_t *thread_param = (thread_param_t *) hccalloc (1, sizeof (thread_param_t));
     hc_thread_t *selftest_threads = (hc_thread_t *) hccalloc (1, sizeof (hc_thread_t));
@@ -2089,6 +2295,15 @@ int  bcrypt_hashpass(const char* pwd,const char* insolt, int nround , char* outh
 	char encodesalt[128] = {0,};
 	strcpy(encodesalt, insolt);
 	//int nlen = MIN(strlen(encodesalt), 16);
+
+	//printf("\n --salt hex SI-- \n");
+	//u8 *pptmp = (u8 *)encodesalt;
+	//for(int i=0;i<16;i++)
+	//	printf("%02x",encodesalt[i]);
+		
+	//printf("\n --salt hex EI-- \n");
+
+	
 	
 	u32 encsalt[6] = {0,};
 
@@ -2132,7 +2347,7 @@ int  bcrypt_hashpass(const char* pwd,const char* insolt, int nround , char* outh
 	if(nres>0)
 	{
 		strcpy(outhash,thread_param->hash);
-		//printf("%s\n",thread_param->hash);
+		printf("%s\n",thread_param->hash);
 	}
 	
 	
@@ -2183,6 +2398,106 @@ int  get_enginecount()
   //return backend_ctx->backend_devices_cnt;
 }
 
+int  get_devicepower(int ndev)
+{
+	if(binitengine != 1) return 0;
+
+	int npower = 0;
+	backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
+	if(ndev >=0 && ndev<backend_ctx->backend_devices_active)
+	{
+		npower = backend_ctx->devices_param[ndev].kernel_power;
+	}
+
+  	return npower;
+  //return backend_ctx->backend_devices_cnt;
+}
+
+void reset_device(int nchanal)
+{
+	if(binitengine != 1) return;	
+
+	backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
+	
+	if(nchanal >=0 && nchanal<backend_ctx->backend_devices_active)
+	{
+		backend_ctx->devices_param[nchanal].nsspos = 0;
+	}
+
+}
+void add_data(int nchanal,int nid,const char* pwd,const char* insolt)
+{
+
+	backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
+
+	if(nchanal >=0 && nchanal<ndevicecount)
+	{
+		strcpy(backend_ctx->devices_param[nchanal].ppsstore[nid].pw,pwd);
+		strcpy(backend_ctx->devices_param[nchanal].ppsstore[nid].salt,insolt);		
+		backend_ctx->devices_param[nchanal].nsspos++;		
+	}
+
+}
+void get_data(int nchanal,int nid,char* outhash)
+{
+	backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
+		
+	if(nchanal >=0 && nchanal<backend_ctx->backend_devices_active)
+	{
+		strcpy(outhash,backend_ctx->devices_param[nchanal].ppsstore[nid].hash);	
+	}
+}
+int  runprocess(int nchanal, int nround)
+{
+	if(binitengine != 1) return -1;
+
+	brecoverymode = 1;
+	
+	hc_timer_t timer_lookup;  
+	hc_timer_set (&timer_lookup);
+
+	backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
+	status_ctx_t   *status_ctx	  = hashcat_ctx->status_ctx;
+		
+	if(nchanal < 0 || nchanal>=backend_ctx->backend_devices_active || backend_ctx->devices_param[nchanal].nsspos < 1)
+	{
+		return -1;
+	}
+
+	backend_ctx->devices_param[nchanal].nround = nround;
+
+	thread_param_t *thread_param = (thread_param_t *) hccalloc (1, sizeof (thread_param_t));
+	hc_thread_t *selftest_threads = (hc_thread_t *) hccalloc (1, sizeof (hc_thread_t));
+	   
+	status_ctx->devices_status = STATUS_CRACKED;
+
+	
+	thread_param->hashcat_ctx = hashcat_ctx;
+	thread_param->tid = nchanal;
+
+	hc_thread_create (selftest_threads[0], thread_runcalc, thread_param);	
+	hc_thread_wait (1, selftest_threads);
+	
+	
+	status_ctx->devices_status = STATUS_INIT;
+
+	hcfree (thread_param);
+	hcfree (selftest_threads);
+
+	double speed_msec = hc_timer_get (timer_lookup);
+				
+
+	u32 speed_pos = backend_ctx->devices_param[nchanal].speed_pos;			
+	backend_ctx->devices_param[nchanal].speed_cnt[speed_pos] = backend_ctx->devices_param[nchanal].kernel_power;			
+	backend_ctx->devices_param[nchanal].speed_msec[speed_pos] = speed_msec;
+	speed_pos = (speed_pos++)%2;
+	backend_ctx->devices_param[nchanal].speed_pos = speed_pos; 
+	
+	//printf("++++ oscar %d %.8f %d\n",speed_pos,speed_msec, backend_ctx->devices_param[nchanal].kernel_power);		
+
+	return 0;
+}
+
 
 int maintest (char* pwd, char* insolt, int nround)
 {
@@ -2196,7 +2511,7 @@ int maintest (char* pwd, char* insolt, int nround)
   
   
 
-  if(init_bcryptengine() < 0)
+  if(init_bcryptengine(1) < 0)
   {
   	printf("init_bcryptengine error\n");
   }
@@ -2311,6 +2626,138 @@ for(int i =0;i<3;i++)
 
   return rc_final;
 }
+
+void encodeRadix64(char* insalt, char* outslat, int round)
+{
+	char encodesalt[128] = {0,};	
+	u32 encsalt[6] = {0,};	
+	char saltrealin[64] = {0,};
+
+	strcpy(encodesalt, insalt);	
+
+	sprintf(saltrealin, "$2a$%02d$0000000000000000000000", round);	
+
+	char *ptr = encodesalt;
+	for (int i = 0; i < 4; i++) {
+		u32 tmp = 0;
+		for (int j = 0; j < 4; j++) {
+			tmp <<= 8;
+			tmp |= (unsigned char)*ptr;
+			if (!*ptr) {
+				tmp <<= 8 * (3 - j);
+				break;
+			}
+			else ptr++;
+		}
+
+		encsalt[i] = tmp;
+		BF_swap(&encsalt[i], 1);
+	}
+	
+	BF_encode(encodesalt, encsalt, 16);
+
+	for (int i = 0; i < 22; i++)
+	{
+		saltrealin[7 + i] = encodesalt[i];
+	}
+	
+	strcpy(outslat,saltrealin);
+
+
+}
+
+
+int   maintest2(char* infile,char* outfile, int nround)
+{
+#define TEST_NUM 10000
+	
+	pwsalt_t* pstemp = hcmalloc (sizeof (pwsalt_t)*TEST_NUM);
+
+
+	FILE* pinFile;
+	FILE* poutFile;
+	int i = 0;
+	int ntestcount = TEST_NUM;
+	
+	u32 workFactor = 10; //default
+	char pwd[MEM_SIZE] = {0,}; 
+	char temp[MEM_SIZE] = {0,};
+
+
+
+	pinFile = fopen(infile, "r");
+	if (pinFile == 0)
+	{
+		printf("can not input file\n");		
+		return -1;
+	}
+	int brun = 0;
+	int nrealcount = 0;
+	
+	for(i=0; i<ntestcount;i++)
+	{		
+		brun = (fscanf(pinFile, "%s %s", pstemp[i].pw, pstemp[i].salt) == 2);
+		
+		if(brun == 0) break;		
+	}
+
+	nrealcount = i;
+
+
+  if(init_bcryptengine(1) < 0)
+  {
+  	printf("init_bcryptengine error\n");
+  }
+
+  printf("init_bcryptengine \n");
+  
+  proc_start = time (NULL);
+  //printf("Started:%s\n",ctime_r(&proc_start, start_buf));
+
+  proc_stop = time (NULL);
+
+	hashconfig_t   *hashconfig	  = hashcat_ctx->hashconfig;
+	//hashes_t	   *hashes		  = hashcat_ctx->hashes;
+	//mask_ctx_t	   *mask_ctx	  = hashcat_ctx->mask_ctx;
+	backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
+	//outcheck_ctx_t *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
+	//restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
+	status_ctx_t   *status_ctx	  = hashcat_ctx->status_ctx;
+	
+//main loop
+	int ndevicepower = 18;//get_devicepower(0) - 10;
+
+
+	backend_ctx->devices_param[0].nround = nround;
+	backend_ctx->devices_param[0].nsspos = ndevicepower;
+
+
+	memcpy(backend_ctx->devices_param[0].ppsstore,pstemp,sizeof(pwsalt_t)*ndevicepower);
+
+	runprocess(0,nround);
+
+
+	runprocess(0,nround);
+		
+
+		
+
+	if(pstemp != NULL)
+		hcfree (pstemp);
+
+
+  exit_bcryptengine();
+  
+  if(binitengine == 1) 
+  {
+  	printf("exit_bcryptengine\n");
+  	return -1;
+  }
+  
+		
+	return 0;	
+}
+
 
 int  bcrypt_hashpass01(const char* pwd,const char* insolt, int nround , char* outhash, int nchanal)
 {
@@ -4600,14 +5047,6 @@ int  bcrypt_hashpass16(const char* pwd,const char* insolt, int nround , char* ou
 	
   return nres;
 }
-
-
-
-
-
-
-
-
 
 
 
