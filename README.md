@@ -35,13 +35,13 @@ Prepare to create keys:
   
 3. Create Keys
 
-python geokeys.py --create --password donotqwerty --gps +40.73150390,-73.96328405 --round 64 --unit dm
+python geokeys.py --create --password donotqwerty --gps +40.73150000,-73.96328000 --round 131072 --unit cm
 
 --password : Choose a easy to remember Password (try to have at least 13 chars use Capital letters numbers and special chars)
 
 --gps : Collect Geo Coordinates in Decimaldegrees of location 
 
---round : the number of rounds bcrypt will hash. Use min rounds in production)
+--round : the number of rounds bcrypt will hash. (131072 minimum recommendation year 2020)
 
 --unit : choose the quanitfier for the location (m, dm, cm, mm will define how long a recovery search takes)
 
@@ -50,7 +50,7 @@ The output contains the ECDSA keys and die resulting Bitcoin wallet import forma
 
 {
 "password":"aaaaa", 
-"gps":"+40.73150435,-73.96328396", 
+"gps":"+40.73150430,-73.96328390", 
 "bcrypt output1":"$2a$16$XES0XUK3L0HkMBGzMESxM.ZhpdqZfjfoAwkoejes7GR9Plujl5oXy", 
 "bcrypt output2":"$2a$16$WhPiWUSyWhjfXRC3XRWuWeZL1bfJgh0ILOLAM9bZpy8jzWAJQmEV.", 
 "private key":"005a4c3162664a676830494c4f4c414d39625a7079386a7a57414a516d45562f", 
@@ -86,20 +86,26 @@ For recovery:
   
 4. Recovery of keys
   
-  python geokeys.py --recover --password donotqwerty --gps +40.73150390,-73.96328405 --round 64 --unit dm --radius 0.5
+  python geokeys.py --recover --password donotqwerty --gps +40.73150390,-73.96328405 --round 131072 --unit dm --radius 0.5
   
 --password :  Remember your Password
 
 --gps : Collect Geo Coordinates in Decimaldegrees of location 
 
---round : Use same rounds as with creation
+--round : Use same rounds as with creation (131072 minimum recommendation year 2020)
 
---unit : choose the maximum quanitfier for the search (m, dm, cm, mm will define how long a recovery search takes)
+--unit : choose the maximum quanitfier for the search (m, dm, cm, mm, all)
+
+--radius : in meter defines the search area relative to your geo coordinates 
+
+--debug : creates debug output file containing all tries
 
   
 After a successful search you will find your keys in a local text file and in your terminal.
 
 From here you can backup the key and use it as you wish.
+
+The OpenCL bcrypt digest makes use of GPUs and FPGAs such as in crypto mining rigs work for the scaled recovery.
 
 
 Please read the paper to this proof of concept to get more details:
