@@ -3,7 +3,7 @@ import argparse
 import struct
 import binascii
 
-#python gengeoinfo.py --password aaaaa --gps +40.73150390,-73.96328405 --radius 0.5 --unit dm --out geoinfo.txt
+#python gengeoinfo.py --password aaaaa --gps +40.73150390,-73.96328405 --radius 0.5 --unit mm --out geoinfo.txt
 
 def main():
 
@@ -40,16 +40,20 @@ def main():
     earthtotallen = math.pi * 2.0 * earthradius
     #calc square step
     stepdgreepermm = 360.0 / earthtotallen
-    iterator = int(searchredius * 100)
+    stepdgree = 0.00000001
+    iterator = int(searchredius * 1000)
     if scanunit == "mm":
         #https://en.wikipedia.org/wiki/Decimal_degrees
         stepdgree = 0.00000001
-    elif scanunit == "dm":
-        stepdgree = stepdgreepermm * 10.0
+    elif scanunit == "cm":
+        stepdgree = 0.00000010
         iterator = int(iterator/10)
-    elif scanunit == "m":
-        stepdgree = stepdgreepermm * 100.0
+    elif scanunit == "dm":
+        stepdgree = 0.00000100
         iterator = int(iterator/100)
+    elif scanunit == "m":
+        stepdgree = 0.00001000
+        iterator = int(iterator/1000)
     
     #calc left top and iterator round
     k = 0
