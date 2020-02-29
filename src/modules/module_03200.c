@@ -59,6 +59,8 @@ typedef struct bcrypt_tmp
   u32 S1[256];
   u32 S2[256];
   u32 S3[256];
+  u32 bsolt;	
+  u32 salt_buf[4];
 
   u32 R[6];
 
