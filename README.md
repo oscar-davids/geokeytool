@@ -290,7 +290,7 @@ For recovery:
 
 --gps : Collect Geo Coordinates in Decimaldegrees of location 
 
---round : Use same rounds as with creation (131072 minimum recommendation year 2020)
+--round : Use same rounds as with creation (524288 minimum recommendation year 2020)
 
 --unit : choose the maximum quanitfier for the search (m, dm, cm, mm, all)
 
