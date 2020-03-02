@@ -20,11 +20,11 @@ In this paper, we propose a private key recovery system that allows people to re
 We prove that neither the key nor the encryption are weakened by this system. 
 The simplicity of the implementation allows us to get rid of: 
 
-* a middleman, 
+* a middleman 
 
 * a smart contract
 
-* a centralized recovery system, 
+* a centralized recovery system 
 
 * an online connection
 
