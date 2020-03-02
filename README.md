@@ -81,7 +81,7 @@ If the location and your password leaked, you put yourself in a bad position and
 
 ## Hashing Function
 
-To strengthen the keys against any type of guessing or brute forcing attach we use a double hashing with a compute intensive hashing algorithm.
+To strengthen the keys against any type of guessing or brute forcing attacks we use a double hashing with a compute intensive hashing algorithm.
 
 In our PoC we use BCrypt but any hashing function that introduces a time/cost variable will work, for example SCrypt or Argon2.
 
