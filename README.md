@@ -127,6 +127,8 @@ We can estimate using Shannon's Source Coding Theorem the maximum entropy in bit
  
 `\lceil \log _2\left(95^10\left(36\times \:10^{8+1}-1\right)\left(2\times \:10^{8+1}-1\right)\right)\rceil == E`
 
+https://www.symbolab.com/solver/equation-calculator/%5Clceil%5Clog_%7B2%7D%5Cleft(95%5E%7B10%7D%5Cleft(36%5Ctimes%20%2010%5E%7B%5Cleft(7%2B1%5Cright)%2B1%7D-1%5Cright)%5Cleft(2%5Ctimes%20%2010%5E%7B%5Cleft(7%2B1%5Cright)%2B1%7D-1%5Cright)%5Cright)%5Crceil
+
 132 bits entropy can be reached with the following password length and location quantifier:
 
 - a password of 9 chars, a charset of 95 and a location quantifier of mm (8+1)
